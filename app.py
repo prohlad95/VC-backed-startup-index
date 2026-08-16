@@ -74,7 +74,7 @@ def process_index_data():
     df_index.set_index('Date', inplace=True)
     
     # 3. Add Actual Nifty 50 Data
-    # Read the Nifty 50 Excel file (skip the first row title to hit the actual column headers)
+    # Read the updated Nifty 50 Excel file name
     df_nifty = pd.read_excel("Nifty50_Rebased_Monthly_Actual.xlsx", header=1)
     df_nifty['Date'] = pd.to_datetime(df_nifty['Date'])
     
