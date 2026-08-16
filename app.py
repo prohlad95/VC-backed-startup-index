@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import altair as alt
 
 # --- Page Configuration ---
 st.set_page_config(page_title="VC-Backed Startup Index", layout="wide")
@@ -72,9 +73,18 @@ def process_index_data():
     df_index = pd.DataFrame(index_data)
     df_index.set_index('Date', inplace=True)
     
-    # 3. Add Mock Nifty 50 Data (Replace this logic with your actual Nifty 50 data column)
-    # This simulates a baseline market performance for visual comparison
-    df_index['Nifty 50'] = 100.0 * (1 + np.random.normal(0.008, 0.03, len(df_index))).cumprod()
+    # 3. Add Actual Nifty 50 Data
+    # Read the Nifty 50 Excel file (skip the first row title to hit the actual column headers)
+    df_nifty = pd.read_excel("Nifty 50 Monthly Data.xlsx", header=1)
+    df_nifty['Date'] = pd.to_datetime(df_nifty['Date'])
+    
+    # Extract the rebased index column and align it with the Startup Index
+    df_nifty = df_nifty[['Date', 'Rebase']].rename(columns={'Rebase': 'Nifty 50'})
+    df_nifty.set_index('Date', inplace=True)
+    
+    # Join into the main index dataframe and handle minor date discrepancies via ffill/bfill
+    df_index = df_index.join(df_nifty, how='left')
+    df_index['Nifty 50'] = df_index['Nifty 50'].ffill().bfill()
     
     df_companies = pd.DataFrame(company_data)
     return df_index, df_companies
@@ -99,14 +109,27 @@ with tab1:
     col3.metric(label="Constituents Count", value=len(df_companies))
     
     st.subheader("Startup Index vs. Nifty 50 (Base = 100)")
-    st.line_chart(df_index)
+    
+    # Format data for Altair processing
+    df_chart = df_index.reset_index().melt('Date', var_name='Index', value_name='Value')
+    
+    # Static Altair Chart (Deliberately omitting .interactive() to lock zoom and pan)
+    chart = alt.Chart(df_chart).mark_line().encode(
+        x=alt.X('Date:T', title='Date'),
+        y=alt.Y('Value:Q', title='Index Value'),
+        color=alt.Color('Index:N', legend=alt.Legend(title="Indices", orient="bottom")),
+        tooltip=['Date:T', 'Index:N', 'Value:Q']
+    ).properties(
+        height=450
+    )
+    
+    st.altair_chart(chart, use_container_width=True)
 
 # --- Tab 2: Companies ---
 with tab2:
     st.header("Index Constituents")
     st.write("Filter, sort, and search through the 38 index constituents.")
     
-    # Streamlit's native dataframe provides out-of-the-box sorting and searching
     st.dataframe(
         df_companies,
         column_config={
