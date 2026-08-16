@@ -75,7 +75,7 @@ def process_index_data():
     
     # 3. Add Actual Nifty 50 Data
     # Read the Nifty 50 Excel file (skip the first row title to hit the actual column headers)
-    df_nifty = pd.read_excel("Nifty 50 Monthly Data.xlsx", header=1)
+    df_nifty = pd.read_excel("Nifty50_Rebased_Monthly_Actual.xlsx", header=1)
     df_nifty['Date'] = pd.to_datetime(df_nifty['Date'])
     
     # Extract the rebased index column and align it with the Startup Index
