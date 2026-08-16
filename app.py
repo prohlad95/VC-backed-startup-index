@@ -74,12 +74,16 @@ def process_index_data():
     df_index.set_index('Date', inplace=True)
     
     # 3. Add Actual Nifty 50 Data
-    # Read the updated Nifty 50 Excel file name
+    # Read the updated Nifty 50 Excel file name (No header=1 needed here)
     df_nifty = pd.read_excel("Nifty50_Rebased_Monthly_Actual.xlsx")
     df_nifty['Date'] = pd.to_datetime(df_nifty['Date'])
     
-    # Extract the rebased index column and align it with the Startup Index
-    df_nifty = df_nifty[['Date', 'Rebase']].rename(columns={'Rebase': 'Nifty 50'})
+    # Calculate the rebased index directly since the column in the Excel sheet is empty
+    base_nifty_price = df_nifty['Month-Start Close'].iloc[0]
+    df_nifty['Nifty 50'] = (df_nifty['Month-Start Close'] / base_nifty_price) * 100.0
+    
+    # Extract the necessary columns and align
+    df_nifty = df_nifty[['Date', 'Nifty 50']]
     df_nifty.set_index('Date', inplace=True)
     
     # Join into the main index dataframe and handle minor date discrepancies via ffill/bfill
