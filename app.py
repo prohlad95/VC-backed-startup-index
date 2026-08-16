@@ -113,15 +113,19 @@ with tab1:
     # Format data for Altair processing
     df_chart = df_index.reset_index().melt('Date', var_name='Index', value_name='Value')
     
-    # Static Altair Chart (Deliberately omitting .interactive() to lock zoom and pan)
-    chart = alt.Chart(df_chart).mark_line().encode(
+    # Updated Interactive Altair Chart (X-axis swipe enabled, tooltips enhanced)
+    chart = alt.Chart(df_chart).mark_line(point=True).encode(
         x=alt.X('Date:T', title='Date'),
-        y=alt.Y('Value:Q', title='Index Value'),
+        y=alt.Y('Value:Q', title='Index Value', scale=alt.Scale(zero=False)),
         color=alt.Color('Index:N', legend=alt.Legend(title="Indices", orient="bottom")),
-        tooltip=['Date:T', 'Index:N', 'Value:Q']
+        tooltip=[
+            alt.Tooltip('Date:T', title='Date', format='%Y-%m-%d'),
+            alt.Tooltip('Index:N', title='Index'),
+            alt.Tooltip('Value:Q', title='Value', format=',.2f')
+        ]
     ).properties(
         height=450
-    )
+    ).interactive(bind_y=False) # The bind_y=False command enables left/right swipe while keeping the height locked!
     
     st.altair_chart(chart, use_container_width=True)
 
