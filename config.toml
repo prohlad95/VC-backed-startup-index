@@ -1,0 +1,15 @@
+[theme]
+# Primary accent color for UI elements (buttons, sliders, etc.)
+primaryColor = "#0068C9"
+
+# Main background color of the app
+backgroundColor = "#0E1117"
+
+# Background color of sidebar, metric cards, and secondary UI containers
+secondaryBackgroundColor = "#262730"
+
+# Main text color
+textColor = "#FAFAFA"
+
+# General typography font 
+font = "sans serif"
