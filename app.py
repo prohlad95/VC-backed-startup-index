@@ -74,11 +74,10 @@ def process_index_data():
     df_index.set_index('Date', inplace=True)
     
     # 3. Add Actual Nifty 50 Data
-    # Read the updated Nifty 50 Excel file name (No header=1 needed here)
     df_nifty = pd.read_excel("Nifty50_Rebased_Monthly_Actual.xlsx")
     df_nifty['Date'] = pd.to_datetime(df_nifty['Date'])
     
-    # Calculate the rebased index directly since the column in the Excel sheet is empty
+    # Calculate the rebased index directly
     base_nifty_price = df_nifty['Month-Start Close'].iloc[0]
     df_nifty['Nifty 50'] = (df_nifty['Month-Start Close'] / base_nifty_price) * 100.0
     
@@ -114,22 +113,49 @@ with tab1:
     
     st.subheader("Startup Index vs. Nifty 50 (Base = 100)")
     
-    # Format data for Altair processing
-    df_chart = df_index.reset_index().melt('Date', var_name='Index', value_name='Value')
+    # Data formatting for Layered Altair Chart
+    df_wide = df_index.reset_index()
     
-    # Updated Interactive Altair Chart (X-axis swipe enabled, tooltips enhanced)
-    chart = alt.Chart(df_chart).mark_line(point=True).encode(
+    # 1. Create a selection that chooses the nearest point based on the x-axis
+    nearest = alt.selection_point(nearest=True, on='mouseover', fields=['Date'], empty=False)
+
+    # 2. Draw the basic multi-line chart
+    line = alt.Chart(df_wide).transform_fold(
+        ['Startup Index', 'Nifty 50'],
+        as_=['Index', 'Value']
+    ).mark_line().encode(
         x=alt.X('Date:T', title='Date'),
         y=alt.Y('Value:Q', title='Index Value', scale=alt.Scale(zero=False)),
-        color=alt.Color('Index:N', legend=alt.Legend(title="Indices", orient="bottom")),
+        color=alt.Color('Index:N', legend=alt.Legend(title="Indices", orient="bottom"))
+    )
+
+    # 3. Transparent selectors across the x-axis to capture mouse hover and trigger the shared tooltip
+    selectors = alt.Chart(df_wide).mark_point().encode(
+        x='Date:T',
+        opacity=alt.value(0),
         tooltip=[
-            alt.Tooltip('Date:T', title='Date', format='%Y-%m-%d'),
-            alt.Tooltip('Index:N', title='Index'),
-            alt.Tooltip('Value:Q', title='Value', format=',.2f')
+            alt.Tooltip('Date:T', title='Date', format='%b %Y'),
+            alt.Tooltip('Startup Index:Q', title='Startup Index', format=',.2f'),
+            alt.Tooltip('Nifty 50:Q', title='Nifty 50', format=',.2f')
         ]
+    ).add_params(nearest)
+
+    # 4. Draw the active points on the lines, highlighted purely based on the 'nearest' selection
+    points = line.mark_point(size=90, filled=True).encode(
+        opacity=alt.condition(nearest, alt.value(1), alt.value(0))
+    )
+
+    # 5. Draw a vertical crosshair rule at the location of the selection
+    rule = alt.Chart(df_wide).mark_rule(color='#888888', strokeDash=[3, 3]).encode(
+        x='Date:T',
+    ).transform_filter(nearest)
+
+    # Put the layers together into a single chart
+    chart = alt.layer(
+        line, selectors, points, rule
     ).properties(
         height=450
-    ).interactive(bind_y=False) # The bind_y=False command enables left/right swipe while keeping the height locked!
+    ).interactive(bind_y=False) # Swipe enabled on X-axis only
     
     st.altair_chart(chart, use_container_width=True)
 
